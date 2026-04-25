@@ -155,7 +155,7 @@ bcftools index clinvar.vcf.gz
 
     Создаёт файл: *_good_q_vus_only.vcf.gz
 
-Шаг 16 & 17: Создание длинных таблиц при помощи скрипта make_long_table_script.py
+Шаг 16 и 17: Создание длинных таблиц при помощи скрипта make_long_table_script.py
 
     Запускает Python скрипт для конвертации VCF в табличный формат
 
