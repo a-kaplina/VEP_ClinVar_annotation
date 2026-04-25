@@ -1,8 +1,64 @@
 # VEP_ClinVar_annotation
 
-Скрипт  обрабатывает VCF файл, добавляет к ним аннотации (VEP, ClinVar, PharmGKB), фильтрует по клинической значимости и создаёт итоговые таблицы для анализа.
+Скрипт  обрабатывает VCF файл **(в сборке hg38)**, добавляет к нему аннотации (VEP, ClinVar, PharmGKB), фильтрует по клинической значимости и создаёт итоговые таблицы для анализа.
+В папке со скриптом должны находиться необходимые файлы - make_long_table_script.py и pharmgkb_map_clean_CAT_all.txt
 
-Описание:
+Применение (нужно указать путь к папке, в которой находится VCF файл для аннотации **в сборке hg38**): \
+bash VEP_Clinvar_annot_script.sh ~/absolute/path/VCF
+
+**Для работы скрипта необходимо:** 
+
+**Предварительно установить VEP**
+(https://www.ensembl.org/info/docs/tools/vep/script/vep_download.html):
+```bash
+git clone https://github.com/Ensembl/ensembl-vep.git
+cd ensembl-vep
+```
+```bash
+git pull
+git checkout release/115
+perl INSTALL.pl
+```
+
+ **Проверить, есть ли файлы сборки hg38 в папке VEP:**
+```bash
+ls ~/.vep/homo_sapiens
+```
+
+Внутри должна быть папка: 115_GRCh38
+
+- Если ее нет, сначала надо скачать homo_sapiens_vep_115_GRCh38.tar.gz для VEP:
+```bash
+cd $HOME/.vep/homo_sapiens
+curl -O https://ftp.ensembl.org/pub/release-115/variation/indexed_vep_cache/homo_sapiens_vep_115_GRCh38.tar.gz
+tar xzf homo_sapiens_vep_115_GRCh38.tar.gz
+mv ~/.vep/homo_sapiens/homo_sapiens/115_GRCh38 ~/.vep/homo_sapiens/
+```
+Должно быть так:
+```bash
+ls $HOME/.vep/homo_sapiens
+```
+115_GRCh37  115_GRCh38  homo_sapiens_vep_115_GRCh38.tar.gz
+
+**Далее нужно скачать primary assembly:**
+```bash
+cd HOME/.vep/homo_sapiens/115_GRCh38
+wget ftp://ftp.ensembl.org/pub/release-113/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+```
+- Надо перезаписать ее в bgz
+```bash
+zcat ~/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz | bgzip -c > ~/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz
+```
+
+**Скачать ClinVar для hg 38:**
+```bash
+mkdir ~/clinvar38
+cd ~/clinvar38
+ wget ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
+bcftools index clinvar.vcf.gz
+```
+
+**Описание работы скрипта:** \
 Шаг 1: Проверка входных данных
 
     Проверяет, указана ли папка с исходными файлами
