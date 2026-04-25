@@ -18,7 +18,7 @@ fi
 
 # Define paths
 REF=~/reference/hg38/hg38.fa
-CLINVAR=~/clinvar38/clinvar38.vcf.gz
+CLINVAR=~/clinvar38/clinvar.vcf.gz
 VEPCACHEDIR=~/.vep/
 VEPPLUGINS=~/.vep/Plugins
 REF_VEP=~/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz
