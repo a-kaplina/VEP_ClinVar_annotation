@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-create_long_table_complete.py - Long format таблица вариантов
-Извлекает ВСЕ поля из VCF: частоты, фенотипы, предсказания и т.д.
+create_long_table_complete.py
 """
 
 import gzip
@@ -12,13 +11,13 @@ import subprocess
 from collections import defaultdict
 
 def get_sample_names(vcf_file):
-    """Получить список образцов из VCF"""
+    """Get list of samples from VCF"""
     cmd = f"bcftools query -l {vcf_file}"
     result = subprocess.check_output(cmd, shell=True, text=True)
     return result.strip().split('\n')
 
 def parse_pharmgkb_field(pharmgkb_value):
-    """Парсинг PHARMGKB поля"""
+    """Parse of PharmGKB field"""
     if not pharmgkb_value or pharmgkb_value == '.':
         return None
     
@@ -39,7 +38,7 @@ def parse_pharmgkb_field(pharmgkb_value):
     return result
 
 def parse_clinvar_phenotypes(clndn_value, clndisdb_value):
-    """Парсинг фенотипов из ClinVar"""
+    """Parse of phenotypes from ClinVar"""
     phenotypes = []
     if clndn_value and clndn_value != '.':
         # Split by | for multiple phenotypes
@@ -60,12 +59,12 @@ def parse_clinvar_phenotypes(clndn_value, clndisdb_value):
     }
 
 def extract_field_by_name(info, field_name):
-    """Извлечь поле из INFO по имени"""
+    """Get field from INFO by name"""
     match = re.search(rf'{field_name}=([^;\t]+)', info)
     return match.group(1) if match else ''
 
 def parse_vcf_complete(vcf_file, output_file):
-    """Создать полную long format таблицу со ВСЕМИ полями"""
+    """Make full long format table with all fields"""
     print(f"Parsing {vcf_file}...")
     
     samples = get_sample_names(vcf_file)
@@ -329,13 +328,13 @@ def parse_vcf_complete(vcf_file, output_file):
                 print(f"  Collected {len(data):,} records...")
     
     df = pd.DataFrame(data)
-    print(f"\n✅ Total records: {len(df):,}")
+    print(f"\n Total records: {len(df):,}")
     print(f"   Unique variants: {df.groupby(['CHROM','POS','REF','ALT']).ngroups:,}")
     print(f"   Unique samples: {df['Sample_ID'].nunique():,}")
     
     if len(df) > 0:
         # Statistics
-        print(f"\n📊 Statistics:")
+        print(f"\n Statistics:")
         
         # Pathogenic variants
         if 'CLNSIG' in df.columns:
@@ -371,11 +370,11 @@ def parse_vcf_complete(vcf_file, output_file):
             print(f"   ClinVar phenotypes: {pheno_count:,}")
         
         # Available columns
-        print(f"\n📋 Total columns in output: {len(df.columns)}")
+        print(f"\n Total columns in output: {len(df.columns)}")
     
     # Save
     df.to_csv(output_file, index=False, sep='\t')
-    print(f"\n📁 Table saved to {output_file}")
+    print(f"\n Table saved to {output_file}")
     
     return df
 
@@ -389,7 +388,7 @@ def main():
     df = parse_vcf_complete(args.input, args.output)
     
     # Display sample of important columns
-    print("\n📋 First 5 rows (key columns):")
+    print("\n First 5 rows (key columns):")
     display_cols = ['Sample_ID', 'Genotype', 'CHROM', 'POS', 'Gene_Symbol', 
                    'Consequence', 'IMPACT', 'HGVSc', 'HGVSp', 'SIFT', 'PolyPhen',
                    'CLNSIG', 'CLNREVSTAT', 'ClinVar_Phenotypes',
