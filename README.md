@@ -57,6 +57,9 @@ cd ~/clinvar38
  wget ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
 bcftools index clinvar.vcf.gz
 ```
+**Схематичное отображение этапов работы**
+<br>
+<img width="1181" height="902" alt="VEP_diagram drawio" src="https://github.com/user-attachments/assets/03922237-236e-491c-aaac-c72597cbbfef" />
 
 **Описание работы скрипта:** \
 Проверка входных данных
