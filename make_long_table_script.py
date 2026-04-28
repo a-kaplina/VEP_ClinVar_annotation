@@ -402,39 +402,6 @@ def main():
         print(df[display_cols].head(10).to_string())
     else:
         print(df.head().to_string())
-    
-    # Create summary file
-    summary_file = args.output.replace('.tsv', '_summary.txt')
-    with open(summary_file, 'w') as f:
-        f.write("=== VCF ANNOTATION SUMMARY ===\n\n")
-        f.write(f"Input file: {args.input}\n")
-        f.write(f"Output file: {args.output}\n\n")
-        
-        f.write("=== VARIANT COUNTS ===\n")
-        f.write(f"Total records (sample-variant pairs): {len(df):,}\n")
-        f.write(f"Unique variants: {df.groupby(['CHROM','POS','REF','ALT']).ngroups:,}\n")
-        f.write(f"Unique samples: {df['Sample_ID'].nunique():,}\n\n")
-        
-        if 'CLNSIG' in df.columns:
-            f.write("=== CLINVAR CLASSIFICATIONS ===\n")
-            clnsig_counts = df[df['CLNSIG'] != '']['CLNSIG'].value_counts()
-            for sig, count in clnsig_counts.head(20).items():
-                f.write(f"  {sig}: {count:,}\n")
-            f.write("\n")
-        
-        if 'PHARMGKB_Level' in df.columns:
-            f.write("=== PHARMGKB LEVELS ===\n")
-            level_counts = df[df['PHARMGKB_Level'] != '']['PHARMGKB_Level'].value_counts()
-            for level, count in level_counts.items():
-                f.write(f"  Level {level}: {count:,}\n")
-            f.write("\n")
-        
-        f.write("=== COLUMNS INCLUDED ===\n")
-        for col in df.columns:
-            non_empty = df[col].notna().sum() if df[col].dtype == 'object' else df[col].count()
-            f.write(f"  {col}: {non_empty:,} non-empty values\n")
-    
-    print(f"\n📁 Summary saved to {summary_file}")
 
 if __name__ == "__main__":
     main()
