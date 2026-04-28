@@ -101,7 +101,7 @@ bcftools index clinvar.vcf.gz
 
 Шаг 7: Удаление временного _nochr файла
 
-Шаг 8: Добавление PharmGKB аннотаций с помощью предварительно подгтовленного файла pharmgkb_map_clean_CAT_all.txt (создан из ClinicalVariants.tsv с сайта ClinPGX с добавлением вариантов, полученных при помощи аннотации PharmCAT - указаны, как PharmCAT)
+Шаг 8: Добавление PharmGKB аннотаций с помощью предварительно подготовленного файла pharmgkb_map_clean_CAT_all.txt (создан из ClinicalVariants.tsv с сайта ClinPGX с добавлением вариантов, полученных при помощи аннотации PharmCAT - указаны, как PharmCAT)
 
     Добавляет информацию из базы PharmGKB (уровни доказательств 1A, 1B, 2A, 2B, 3, 4, а также варианты, полученные ранее при аннотации через PharmCAT)
 
