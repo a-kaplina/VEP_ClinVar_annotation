@@ -1,171 +1,343 @@
-# VEP_ClinVar_annotation
+# README
 
-Скрипт  обрабатывает VCF файл **(в сборке hg38)**, добавляет к нему аннотации (VEP, ClinVar, PharmGKB), фильтрует по клинической значимости и создаёт итоговые таблицы для анализа.
-В папке со скриптом должны находиться необходимые файлы - make_long_table_script.py и pharmgkb_map_clean_CAT_all.txt
+This script processes a VCF file (hg38 assembly), adds annotations (VEP, ClinVar, PharmGKB), filters variants by clinical significance, and generates final tables for downstream analysis.
 
-Применение (нужно указать путь к папке, в которой находится VCF файл для аннотации **в сборке hg38**): \
+The following files must be present in the same directory as the script:
+
+* `make_long_table_script.py`
+* `pharmgkb_map_clean_CAT_all.txt`
+
+## Usage
+
+Specify the path to the folder containing the hg38 VCF file to annotate:
+
+```bash
 bash VEP_Clinvar_annot_script.sh ~/absolute/path/VCF
+```
 
-**Для работы скрипта необходимо:** 
+---
 
-**Предварительно установить VEP**
-(https://www.ensembl.org/info/docs/tools/vep/script/vep_download.html):
+# Requirements
+
+## Install VEP
+
+Follow the official installation guide:
+
 ```bash
 git clone https://github.com/Ensembl/ensembl-vep.git
 cd ensembl-vep
-```
-```bash
 git pull
 git checkout release/115
 perl INSTALL.pl
 ```
 
- **Проверить, есть ли файлы сборки hg38 в папке VEP:**
+Official documentation:
+
+https://www.ensembl.org/info/docs/tools/vep/script/vep_download.html
+
+---
+
+## Check hg38 cache files
+
+Verify that the hg38 cache is present:
+
 ```bash
 ls ~/.vep/homo_sapiens
 ```
 
-Внутри должна быть папка: 115_GRCh38
+The directory should contain:
 
-- Если ее нет, сначала надо скачать homo_sapiens_vep_115_GRCh38.tar.gz для VEP:
+```bash
+115_GRCh38
+```
+
+If it is missing, download the VEP cache:
+
 ```bash
 cd $HOME/.vep/homo_sapiens
 curl -O https://ftp.ensembl.org/pub/release-115/variation/indexed_vep_cache/homo_sapiens_vep_115_GRCh38.tar.gz
 tar xzf homo_sapiens_vep_115_GRCh38.tar.gz
 mv ~/.vep/homo_sapiens/homo_sapiens/115_GRCh38 ~/.vep/homo_sapiens/
 ```
-Должно быть так:
+
+After installation, the directory should look like:
+
 ```bash
 ls $HOME/.vep/homo_sapiens
+115_GRCh37 115_GRCh38 homo_sapiens_vep_115_GRCh38.tar.gz
 ```
-115_GRCh37  115_GRCh38  homo_sapiens_vep_115_GRCh38.tar.gz
 
-**Далее нужно скачать primary assembly:**
+---
+
+## Download the GRCh38 primary assembly
+
 ```bash
-cd HOME/.vep/homo_sapiens/115_GRCh38
+cd $HOME/.vep/homo_sapiens/115_GRCh38
 wget ftp://ftp.ensembl.org/pub/release-113/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 ```
-- Надо перезаписать ее в bgz
+
+Convert it to bgzip format:
+
 ```bash
 zcat ~/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz | bgzip -c > ~/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz
 ```
 
-**Скачать ClinVar для hg 38:**
+---
+
+## Download ClinVar for hg38
+
 ```bash
 mkdir ~/clinvar38
 cd ~/clinvar38
- wget ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
+wget ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
 bcftools index clinvar.vcf.gz
 ```
-**Схематичное отображение этапов работы**
-<br>
-<img width="1181" height="902" alt="VEP_diagram drawio" src="https://github.com/user-attachments/assets/03922237-236e-491c-aaac-c72597cbbfef" />
 
-**Описание работы скрипта:** \
-Проверка входных данных
+---
 
-    Проверяет, указана ли папка с исходными файлами
+# Workflow Overview
 
-    Создаёт внутри неё структуру папок: input/ (временная папка) и output/
+Schematic workflow:
+<img width="1111" height="908" alt="ENG_VEP_diagram_git drawio" src="https://github.com/user-attachments/assets/8b2e89e3-e102-4988-899b-8dd74002e035" />
 
-Шаги 1 и 2: Сортировка и нормализация VCF файла
 
-    Сортирует исходный VCF файл, разделяет мультиаллельные варианты на отдельные записи, приводит варианты к стандартизированному виду
 
-    Создаёт файл: *_norm.vcf.gz
+---
 
-Шаг 3: Cоздание mapping файла для удаления chr из названий хромосом в VCF
+# Script Workflow Description
 
-Шаг 4: Удаление префикса "chr"
+## Input validation
 
-    Убирает приставку chr из названий хромосом (chr1 → 1, chrX → X) для совместимости с базой ClinVar
+* Checks whether the input folder containing source files is provided
+* Creates the following folder structure inside it:
 
-    Создаёт файл: *_nochr.vcf.gz
+  * `input/` (temporary files)
+  * `output/`
 
-Шаг 5: Очистка промежуточных ( _norm) файлов 
+---
 
-Шаг 6: VEP аннотация + ClinVar
+## Steps 1–2: VCF sorting and normalization
 
-    Запускает VEP (Ensembl Variant Effect Predictor) для добавления:
+* Sorts the input VCF
+* Splits multiallelic variants into separate records
+* Normalizes variants into a standardized representation
 
-        Функциональных характеристик вариантов (missense, nonsense и т.д.)
+Creates:
 
-        Предсказаний SIFT и PolyPhen 
+```bash
+*_norm.vcf.gz
+```
 
-        Частот из 1000 Genomes и gnomAD 
+---
 
-        HGVS номенклатуры
+## Step 3: Create chromosome mapping file
 
-        Информации о генах, транскриптах, доменах белков
+Creates a mapping file used to remove the `chr` prefix from chromosome names in the VCF.
 
-    Затем добавляет данные из ClinVar (клиническая значимость, фенотипы, статус рецензирования)
+---
 
-    Создаёт файл: *_annotated.vcf.gz
+## Step 4: Remove `chr` prefix
 
-Шаг 7: Удаление временного _nochr файла
+Converts chromosome names for ClinVar compatibility:
 
-Шаг 8: Добавление PharmGKB аннотаций с помощью предварительно подготовленного файла pharmgkb_map_clean_CAT_all.txt (создан из ClinicalVariants.tsv с сайта ClinPGX с добавлением вариантов, полученных при помощи аннотации PharmCAT - указаны, как PharmCAT)
+* `chr1 → 1`
+* `chrX → X`
 
-    Добавляет информацию из базы PharmGKB (уровни доказательств 1A, 1B, 2A, 2B, 3, 4, а также варианты, полученные ранее при аннотации через PharmCAT)
+Creates:
 
-    Создаёт файл: *_annotated_Pharm.vcf.gz
+```bash
+*_nochr.vcf.gz
+```
 
-    Подсчитывает количество вариантов из PharmGKB с различными уровнями (1-4, PharmCAT)
+---
 
-Шаг 9: Удаление промежуточного аннотированного файла
+## Step 5: Remove intermediate `_norm` files
 
-    Удаляет *_annotated.vcf.gz, оставляя только версию с PharmGKB
+Deletes temporary normalized files.
 
-Шаг 10: Фильтрация по генотипу
+---
 
-    Убирает варианты, для которых все образцы гомозиготны по референсному аллелю
+## Step 6: VEP annotation + ClinVar
 
-    Создаёт файл: *_real_annotated_Pharm.vcf.gz
+Runs Ensembl Variant Effect Predictor (VEP) to add:
 
-Шаг 11: Статистика по патогенности
+* Functional consequences (missense, nonsense, etc.)
+* SIFT and PolyPhen predictions
+* Frequencies from 1000 Genomes and gnomAD
+* HGVS nomenclature
+* Gene, transcript, and protein domain information
 
-    Создаёт файлы _clnsig_counts.txt с подсчётом различных классов клинической значимости и review status (для файла до фильтрации и после удаления гомозигот по референсу)
+Then adds ClinVar annotations:
 
-Шаг 12: Выделение патогенных вариантов
+* Clinical significance
+* Phenotypes
+* Review status
 
-    Оставляет только варианты с метками: Pathogenic, Likely_pathogenic и их комбинации
+Creates:
 
-    Создаёт файл: *__all_pathogenic.vcf.gz
+```bash
+*_annotated.vcf.gz
+```
 
-Шаг 13: Фильтрация по качеству рецензирования (патогенные)
+---
 
-    Оставляет только патогенные варианты с хорошим статусом рецензирования:
+## Step 7: Remove temporary `_nochr` file
 
-        2 звезды (множество подтверждений, нет конфликтов)
+Deletes the temporary file generated after chromosome renaming.
 
-        3 звезды (экспертная панель)
+---
 
-        4 звезды (клинические рекомендации)
+## Step 8: Add PharmGKB annotations
 
-        1 звезда (хотя бы одно подтверждение с критериями)
+Uses the precompiled file:
 
-    Создаёт файл: *_good_q_pathogenic.vcf.gz
+```bash
+pharmgkb_map_clean_CAT_all.txt
+```
 
-Шаг 14: Выделение VUS вариантов
+This file was generated from:
 
-    Фильтрует аннотированный файл отдельно и оставляет только варианты с Uncertain Significance (неопределённая значимость)
+* `ClinicalVariants.tsv` from the ClinPGX website
+* Additional variants identified through PharmCAT annotation (marked as `PharmCAT`)
 
-    Создаёт файл: *_all_vus.vcf.gz
+Adds PharmGKB information including evidence levels:
 
-Шаг 15: Фильтрация VUS по качеству рецензирования
+* 1A
+* 1B
+* 2A
+* 2B
+* 3
+* 4
+* PharmCAT-derived variants
 
-    Оставляет только VUS варианты с хорошим статусом рецензирования
+Creates:
 
-    Создаёт файл: *_good_q_vus.vcf.gz
+```bash
+*_annotated_Pharm.vcf.gz
+```
 
-Шаг 16 и 17: Создание таблиц при помощи скрипта make_long_table_script.py
+Also counts variants by PharmGKB evidence level.
 
-    Запускает Python скрипт для конвертации VCF в табличный формат
+---
 
-    Создаёт таблицы:
+## Step 9: Remove intermediate annotated file
 
-        *_Result_pat_fin_annotation.tsv - для патогенных вариантов
+Deletes:
 
-        *_Result_vus_fin_annotation.tsv - для VUS вариантов
+```bash
+*_annotated.vcf.gz
+```
 
-    В таблицах содержатся все поля: частоты, предсказания, фенотипы, лекарства и т.д.
+keeping only the PharmGKB-annotated version.
+
+---
+
+## Step 10: Genotype filtering
+
+Removes variants where all samples are homozygous reference.
+
+Creates:
+
+```bash
+*_real_annotated_Pharm.vcf.gz
+```
+
+---
+
+## Step 11: Pathogenicity statistics
+
+Generates:
+
+```bash
+*_clnsig_counts.txt
+```
+
+These files contain counts of:
+
+* Clinical significance categories
+* Review status categories
+
+Statistics are generated both:
+
+* Before filtering
+* After removing homozygous reference variants
+
+---
+
+## Step 12: Extract pathogenic variants
+
+Keeps only variants labeled as:
+
+* `Pathogenic`
+* `Likely_pathogenic`
+* Their combinations
+
+Creates:
+
+```bash
+*_all_pathogenic.vcf.gz
+```
+
+---
+
+## Step 13: Filter pathogenic variants by review quality
+
+Keeps only pathogenic variants with reliable ClinVar review status:
+
+* 2 stars — multiple submitters, no conflicts
+* 3 stars — expert panel
+* 4 stars — clinical practice guideline
+* 1 star — criteria provided by at least one submitter
+
+Creates:
+
+```bash
+*_good_q_pathogenic.vcf.gz
+```
+
+---
+
+## Step 14: Extract VUS variants
+
+Filters annotated variants and keeps only:
+
+* `Uncertain_significance`
+
+Creates:
+
+```bash
+*_all_vus.vcf.gz
+```
+
+---
+
+## Step 15: Filter VUS variants by review quality
+
+Keeps only VUS variants with good review status.
+
+Creates:
+
+```bash
+*_good_q_vus.vcf.gz
+```
+
+---
+
+## Steps 16–17: Generate tables using `make_long_table_script.py`
+
+Runs the Python script to convert VCF files into tabular format.
+
+Creates:
+
+* `*_Result_pat_fin_annotation.tsv` — pathogenic variants
+* `*_Result_vus_fin_annotation.tsv` — VUS variants
+
+The resulting tables contain all annotations, including:
+
+* Population frequencies
+* Functional predictions
+* Phenotypes
+* Drug-related annotations
+* PharmGKB information
+* Additional metadata
+
