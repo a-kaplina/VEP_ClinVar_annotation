@@ -98,8 +98,8 @@ bcftools index clinvar.vcf.gz
 # Workflow Overview
 
 Schematic workflow:
+<img width="1111" height="908" alt="ENG_VEP_diagram_git drawio" src="https://github.com/user-attachments/assets/8b2e89e3-e102-4988-899b-8dd74002e035" />
 
-<img width="988" height="758" alt="image" src="https://github.com/user-attachments/assets/309f8c24-18c1-4a5c-9c02-ebe90e056a1a" />
 
 
 ---
